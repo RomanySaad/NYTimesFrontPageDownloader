@@ -101,21 +101,17 @@ namespace NYTimesFrontPageDownloader
                 }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine($"Error validating file {fileSavePath}");
-                    Console.ResetColor();
+                    DisplayError($"Error validating file {fileSavePath}", true);
                 }
             }
             //If we run into some other HTTP status code, lets write that to the console and move on
             else
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Error downloading file {fileSavePath}: {(int)response.StatusCode} - {response.StatusCode}");
-                Console.ResetColor();
+                DisplayError($"Error downloading file {fileSavePath}: {(int)response.StatusCode} - {response.StatusCode}", (int)response.StatusCode != 404);
             }
         }
 
-        // Returns the human-readable file size for an arbitrary, 64-bit file size 
+        // Returns the human-readable file size for an arbitrary, 64-bit file size
         // The default format is "0.### XB", e.g. "4.2 KB" or "1.434 GB"
         // Copied from https://stackoverflow.com/a/11124118
         static string GetBytesReadable(long i)
@@ -164,6 +160,26 @@ namespace NYTimesFrontPageDownloader
 
             // Return formatted number with suffix
             return readable.ToString("0.## ") + suffix;
+        }
+
+        static void DisplayError(string errorMessage, bool logToFile = false)
+        {
+            try
+            {
+                if (logToFile)
+                {
+                    File.AppendAllText("Error.log", DateTime.Now.ToString("MM/dd/yyyy hh:mm:ss tt") + ": " + errorMessage + Environment.NewLine);
+                }
+
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(errorMessage);
+                Console.ResetColor();
+            }
+            //If file is in use because of a previous error log, try again.
+            catch (System.IO.IOException)
+            {
+                DisplayError(errorMessage, logToFile);
+            }
         }
     }
 }
